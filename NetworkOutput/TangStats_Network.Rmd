@@ -1,0 +1,72 @@
+---
+title: "Visualizing the TangStats Table Network"
+output: 
+  html_document:
+    code_folding: show
+    theme:
+      fg: "#202123"
+      bg: "#B8BCC2"
+      primary: "#EA80FC"
+      secondary: "#00DAC6"
+      base_font:
+        google: Prompt
+      heading_font:
+        google: Proza Libre
+---
+
+```{r setup, include=FALSE}
+if (requireNamespace("thematic")) 
+  thematic::thematic_rmd(font = "auto")
+
+library(tidyverse)
+library(tidygraph)
+library(ggraph)
+# library(igraph)
+
+load(file = here::here("output", "TangFull.rds"))
+load(file = here::here("output", "allTangTable.rds"))
+
+
+nodes <- 
+  allTangTable %>% 
+  select(id = rowid,
+         label, TABLE_TYPE, Category) %>% 
+  mutate(id = as.numeric(id),
+         Category = ifelse(is.na(Category), TABLE_TYPE, Category))
+
+
+edges <- TangFull %>% 
+  rename(from_name = from, to_name = to) %>% 
+  left_join(nodes, by = c("from_name" = "label")) %>% 
+  rename(from = id) %>%
+  left_join(nodes, by = c("to_name" = "label")) %>% 
+  rename(to = id) %>% 
+  select(from, to, weight) %>% 
+  mutate(weight = as.numeric(weight)) %>% 
+  filter(!is.na(to),
+         !is.na(from))
+
+```
+
+# Overview of Work
+
+Pulling in the TangStats table information and then looking at the different ways they says the tables are connected. 
+
+
+# TangStats Network
+
+```{r}
+library(visNetwork)
+# library(networkD3)
+
+
+visNetwork(nodes %>% mutate(group = Category), 
+           edges,
+           main = "TangStats Table Network") %>% 
+  visIgraphLayout(layout = "layout_with_fr") %>% 
+  visEdges(arrows = "middle") %>% 
+  visLegend() %>% 
+  visOptions(highlightNearest = T, selectedBy = "group")
+```
+
+
